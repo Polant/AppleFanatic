@@ -5,6 +5,8 @@ import LoggerAPI
 
 HeliumLogger.use()
 
+let (db, connection) = try connectToDatabase()
+
 let router = Router()
 
 let backend = BackEnd()
