@@ -31,10 +31,7 @@ class FrontEnd {
         return router
     }()
     
-    private func createTemplateEngine() -> StencilTemplateEngine {
-        let namespace = Extension()
-        return StencilTemplateEngine(extension: namespace)
-    }
+    
     
     func context(for request: RouterRequest) -> [String: Any] {
         var result = [String: Any]()
@@ -98,5 +95,37 @@ class FrontEnd {
         pageContext["stories"] = self.get("/stories")?.arrayObject
         
         try response.render("home", context: pageContext)
+    }
+}
+
+
+// MARK: - Templates
+extension FrontEnd {
+    
+    fileprivate func createTemplateEngine() -> StencilTemplateEngine {
+        let namespace = Extension()
+        namespace.registerFilter("link") { (value: Any?) -> Any? in
+            guard let unwrapped = value as? [String: Any] else { return nil }
+            
+            guard let category = unwrapped["category"] as? String,
+                let id = unwrapped["id"],
+                let slug = unwrapped["slug"] else {
+                    return value
+            }
+            return "/\(category.lowercased())/\(id)/\(slug)"
+        }
+        namespace.registerFilter("markdown") { (value: Any?) -> Any? in
+            guard let unwrapped = value as? String else { return nil }
+            
+            let trimmed = unwrapped.replacingOccurrences(of: "\r\n", with: "\n")
+            
+            if let markdown = try? Markdown(string: trimmed) {
+                if let htmlDocument = try? markdown.document() {
+                    return htmlDocument
+                }
+            }
+            return unwrapped
+        }
+        return StencilTemplateEngine(extension: namespace)
     }
 }

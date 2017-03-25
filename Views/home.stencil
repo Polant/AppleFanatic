@@ -2,7 +2,7 @@
 
 {% block body %}
     {% for story in stories %}
-        <h2><a href="{{ story.id }}">{{ story.title }}</a></h2>
-        <p>{{ story.strap }}</p>
+        <h2><a href="{{ story|link }}">{{ story.title }}</a></h2>
+        {{ story.strap|markdown }}
     {% endfor %}
 {% endblock %}
