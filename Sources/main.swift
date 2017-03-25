@@ -13,6 +13,10 @@ let backend = BackEnd()
 let frontend = FrontEnd()
 
 Kitura.addHTTPServer(onPort: 8089, with: backend.router)
-Kitura.addHTTPServer(onPort: 8090, with: frontend.router)
+let frontendServer = Kitura.addHTTPServer(onPort: 8090, with: frontend.router)
+
+frontendServer.started { [unowned frontend] in
+    frontend.loadCategories()
+}
 
 Kitura.run()

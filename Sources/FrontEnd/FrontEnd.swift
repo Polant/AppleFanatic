@@ -19,7 +19,8 @@ class FrontEnd {
     
     let baseApiURL = URL(string: "http://localhost:8089")
     
-    // MARK: - Public
+    
+    var categories = [String]()
     
     lazy var router: Router = {
         let router = Router()
@@ -111,6 +112,12 @@ class FrontEnd {
         pageContext["story"] = story
         try response.render("read", context: pageContext).end()
     }
+    
+    func loadCategories() {
+        if let remoteCategories = get("/categories")?.arrayObject as? [String] {
+            categories = remoteCategories
+        }
+    }
 }
 
 
@@ -151,6 +158,7 @@ extension FrontEnd {
 extension FrontEnd {
     fileprivate func context(for request: RouterRequest) -> [String: Any] {
         var result = [String: Any]()
+        result["categories"] = categories
         return result
     }
     fileprivate func renderError(_ message: String, _ response: RouterResponse, _ next: () -> Void) {

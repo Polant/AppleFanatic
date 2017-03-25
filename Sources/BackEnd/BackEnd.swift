@@ -23,6 +23,8 @@ class BackEnd {
         router.get("/stories", handler: self.getAllStories)
         router.get("/story/:id", handler: self.getStory)
         
+        router.get("/categories", handler: self.getAllCategories)
+        
         return router
     }()
     
@@ -81,6 +83,18 @@ class BackEnd {
         postDictionary["date"] = post["date"]?.string
         
         response.status(.OK).send(json: JSON(postDictionary))
+    }
+    
+    func getAllCategories(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
+        defer { next() }
+        
+        let (db, connection) = try connectToDatabase()
+        let query = "SELECT `name` FROM `categories` ORDER BY `name`;"
+        
+        let categories = try db.execute(query, [], connection)
+        let categoryNames = categories.flatMap { $0["name"]?.string }
+        
+        response.status(.OK).send(json: JSON(categoryNames))
     }
     
 }
