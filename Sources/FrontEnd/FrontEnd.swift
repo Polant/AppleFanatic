@@ -19,24 +19,24 @@ class FrontEnd {
     
     let baseApiURL = URL(string: "http://localhost:8089")
     
+    // MARK: - Public
+    
     lazy var router: Router = {
         let router = Router()
         
         router.setDefault(templateEngine: self.createTemplateEngine())
         router.all("/static", middleware: StaticFileServer())
+        router.all("/static/*") { req, res, next in
+            try res.end()
+        }
         router.post("/", middleware: BodyParser())
         
         router.get("/", handler: self.getHomePage)
+        router.get("/:category/:id/:slug", handler: self.getStory)
         
         return router
     }()
-    
-    
-    
-    func context(for request: RouterRequest) -> [String: Any] {
-        var result = [String: Any]()
-        return result
-    }
+
     
     // MARK: - HTTP
     
@@ -96,6 +96,21 @@ class FrontEnd {
         
         try response.render("home", context: pageContext)
     }
+    
+    func getStory(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
+        guard let id = request.parameters["id"] else {
+            renderError("Missing ID", response, next)
+            return
+        }
+        guard let story = get("/story/\(id)")?.dictionaryObject else {
+            renderError("Page not found", response, next)
+            return
+        }
+        var pageContext = context(for: request)
+        pageContext["title"] = story["title"] ?? ""
+        pageContext["story"] = story
+        try response.render("read", context: pageContext).end()
+    }
 }
 
 
@@ -127,5 +142,18 @@ extension FrontEnd {
             return unwrapped
         }
         return StencilTemplateEngine(extension: namespace)
+    }
+}
+
+
+// MARK: - Utils
+
+extension FrontEnd {
+    fileprivate func context(for request: RouterRequest) -> [String: Any] {
+        var result = [String: Any]()
+        return result
+    }
+    fileprivate func renderError(_ message: String, _ response: RouterResponse, _ next: () -> Void) {
+        _ = try? response.send("Error: \(message)").end()
     }
 }
