@@ -37,8 +37,14 @@ class FrontEnd {
         
         let adminRouter = Router()
         adminRouter.get("/", handler: self.getAdminHome)
-        
+        adminRouter.get("/edit/:id?", handler: self.getAdminEdit)
+        adminRouter.post("/edit/:id?", handler: self.postAdminEdit)
         router.all("/admin", middleware: adminRouter)
+        /*
+        adminRouter.route("/edit/:id?")
+            .get(handler: self.getAdminEdit)
+            .post(handler: self.postAdminEdit)
+        */
         
         return router
     }()
@@ -124,6 +130,8 @@ class FrontEnd {
         }
     }
     
+    // MARK: Admin
+    
     func getAdminHome(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
         defer { next() }
         
@@ -131,6 +139,55 @@ class FrontEnd {
         pageContext["title"] = "Admin"
         pageContext["stories"] = get("/stories")?.arrayObject
         try response.render("admin_home", context: pageContext)
+    }
+    
+    func getAdminEdit(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
+        defer { next() }
+        
+        var pageContext = context(for: request)
+        pageContext["title"] = "Edit"
+        
+        if let storyID = request.parameters["id"] {
+            pageContext["story"] = get("/story/\(storyID)")?.dictionaryObject
+        }
+        
+        try response.render("admin_edit", context: pageContext)
+    }
+    
+    func postAdminEdit(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
+        var pageContext = context(for: request)
+        pageContext["title"] = "Edit"
+        
+        guard let values = request.body else { return }
+        guard case .urlEncoded(let rawPost) = values else { return }
+        
+        if var fields = request.getPost(fields: ["title", "strap", "content", "category"]) {
+            let slug = rawPost["slug"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if let unwrappedSlug = slug, unwrappedSlug.characters.count > 0 {
+                fields["slug"] = unwrappedSlug
+            } else {
+                fields["slug"] = fields["title"]!
+            }
+            
+            fields["slug"] = (try? fields["slug"]!.convertedToSlug()) ?? fields["slug"]!
+            
+            let postResult: JSON?
+            
+            if let storyID = request.parameters["id"] {
+                postResult = post("/story/\(storyID)", fields: fields)
+            } else {
+                postResult = post("/story/create", fields: fields)
+            }
+            
+            if let _ = postResult {
+                try response.redirect("/admin")
+                return
+            }
+        }
+        
+        pageContext["story"] = rawPost
+        try response.render("admin_edit", context: pageContext).end()
     }
 }
 
