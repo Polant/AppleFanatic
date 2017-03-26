@@ -35,6 +35,11 @@ class FrontEnd {
         router.get("/", handler: self.getHomePage)
         router.get("/:category/:id/:slug", handler: self.getStory)
         
+        let adminRouter = Router()
+        adminRouter.get("/", handler: self.getAdminHome)
+        
+        router.all("/admin", middleware: adminRouter)
+        
         return router
     }()
 
@@ -117,6 +122,15 @@ class FrontEnd {
         if let remoteCategories = get("/categories")?.arrayObject as? [String] {
             categories = remoteCategories
         }
+    }
+    
+    func getAdminHome(request: RouterRequest, response: RouterResponse, next: () -> Void) throws {
+        defer { next() }
+        
+        var pageContext = context(for: request)
+        pageContext["title"] = "Admin"
+        pageContext["stories"] = get("/stories")?.arrayObject
+        try response.render("admin_home", context: pageContext)
     }
 }
 
